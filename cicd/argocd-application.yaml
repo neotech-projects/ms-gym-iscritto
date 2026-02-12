@@ -1,0 +1,17 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gym-investire-iscritto-ms
+  namespace: ns-gym-investire-coll
+spec:
+  project: neotech-coll
+  destination:
+    name: in-cluster
+    namespace: ns-gym-investire-coll
+  source:
+    repoURL: https://github.com/neotech-projects/ms-gym-iscritto.git
+    path: k8s/overlays/coll
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

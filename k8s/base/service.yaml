@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: srv-gym-investire-iscritto-ms
+  namespace: ns-gym-investire-coll
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: gym-investire-iscritto-ms
+  ports:
+    - protocol: TCP
+      port: 8080           # porta interna del Service
+      targetPort: 8080   # porta del container

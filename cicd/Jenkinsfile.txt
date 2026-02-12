@@ -1,0 +1,141 @@
+pipeline {
+ 
+  agent {
+    kubernetes {
+      // Jenkins must have at least one Kubernetes Cloud configured (Manage Jenkins -> System -> Clouds).
+      // If you have multiple Kubernetes clouds, uncomment and set the right name:
+      cloud 'k8s'
+      label 'maven-jdk25'
+      defaultContainer 'maven'
+      yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+    - name: maven
+      image: maven:3.9.12-eclipse-temurin-25
+      command:
+        - cat
+      tty: true
+"""
+    }
+  }
+
+  parameters {
+    gitParameter(
+      name: 'GIT_TAG',
+      type: 'PT_TAG',
+      defaultValue: '',
+      description: 'Seleziona il tag Git da buildare',
+      branchFilter: '.*',
+      tagFilter: '*',
+      sortMode: 'DESCENDING_SMART',
+      selectedValue: 'NONE',
+      useRepository: 'https://github.com/neotech-projects/ms-gym-iscritto.git'
+    )
+  }
+
+  environment {
+    // IMPORTANT: Docker image names MUST NOT include the scheme (no http://)
+    REGISTRY   = '10.43.181.213:5000'
+    IMAGE_NAME = 'gym-investire-iscritto-ms'
+    GIT_URL    = 'https://github.com/neotech-projects/ms-gym-iscritto.git'
+
+  }
+
+  stages {
+
+    stage('Verify tools') {
+      steps {
+        sh 'java -version'
+        sh 'mvn -version'
+      }
+    }
+
+    stage('Checkout tag') {
+      steps {
+        checkout([
+          $class: 'GitSCM',
+          branches: [[name: "refs/tags/${params.GIT_TAG}"]],
+          userRemoteConfigs: [[
+            url: "${GIT_URL}",
+            credentialsId: 'github-pat'
+          ]]
+        ])
+      }
+    }
+
+    stage('Resolve app version (pom.xml)') {
+      steps {
+        dir('sources') {
+          script {
+            // Docker tags cannot contain ":"; we will publish as "<pomVersion>-<gitTag>"
+            env.POM_VERSION = sh(
+              script: "mvn -q -DforceStdout help:evaluate -Dexpression=project.version",
+              returnStdout: true
+            ).trim()
+            echo "Resolved POM version: ${env.POM_VERSION}"
+          }
+        }
+      }
+    }
+
+    stage('Build with Maven') {
+
+      steps {
+        dir('sources') {
+          sh 'mvn clean package -DskipTests'
+        }
+      }
+    }
+
+    stage('Build & Push image (Jib)') {
+      steps {
+        script {
+          // Publish tag as "<pomVersion>-<gitTag>" (valid Docker tag)
+          env.IMAGE_TAG = "${env.POM_VERSION}-${params.GIT_TAG}"
+          // Base image da Docker Hub (eclipse-temurin)
+          env.JIB_FROM_IMAGE = "eclipse-temurin:25-jdk"
+        }
+        dir('sources') {
+          sh """
+          mvn -DskipTests \
+            -Djib.from.image=${env.JIB_FROM_IMAGE} \
+            -Djib.to.image=${REGISTRY}/${IMAGE_NAME}:${IMAGE_TAG} \
+            -Djib.allowInsecureRegistries=true \
+            com.google.cloud.tools:jib-maven-plugin:3.5.1:build
+          """
+        }
+      }
+    }
+
+    stage('Update ArgoCD (revision + image)') {
+      steps {
+        script {
+          def fullImage = "${REGISTRY}/${IMAGE_NAME}:${env.IMAGE_TAG}"
+          // Aggiorna revision (così in "Synced to" compare il tag invece di "master") e immagine
+          sh """
+            (command -v argocd >/dev/null && argocd app set demo-coll --revision ${params.GIT_TAG} --kustomize-image ${fullImage} && argocd app sync demo-coll --async) || echo 'argocd CLI non disponibile: esegui manualmente argocd app set demo-coll --revision ${params.GIT_TAG} --kustomize-image ${fullImage}'
+          """
+        }
+      }
+    }
+  }
+
+  post {
+    always {
+      script {
+        // No docker daemon/cli is used (Kaniko builds). Keep post block for future cleanup if needed.
+        if (!env.WORKSPACE) {
+          echo 'Post cleanup skipped: no WORKSPACE context (agent not allocated).'
+        }
+      }
+    }
+    success {
+      echo "✅ Build completata per tag ${params.GIT_TAG}"
+    }
+    failure {
+      echo "❌ Build fallita"
+    }
+  }
+}

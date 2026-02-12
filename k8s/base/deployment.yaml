@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gym-investire-iscritto-ms
+  labels:
+    app.kubernetes.io/name: gym-investire-iscritto-ms
+spec:
+  replicas: 1
+  revisionHistoryLimit: 1 
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: gym-investire-iscritto-ms
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: gym-investire-iscritto-ms
+    spec:
+      containers:
+        - name: app
+          image: gym-investire-iscritto-ms
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: SPRING_CONFIG_ADDITIONAL_LOCATION
+              value: /config/
+          volumeMounts:
+            - name: config
+              mountPath: /config/application.properties
+              subPath: application.properties
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 20
+      volumes:
+        - name: config
+          configMap:
+            name: cmap-gym-investire-iscritto-ms
