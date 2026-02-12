@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cmap-gym-investire-backoffice-ms
+data:
+  application.properties: |
+    server.port=8080
+    banner.location=classpath:banner.txt
+    logging.level.root=info
+    management.endpoints.web.exposure.include=health
+    management.endpoint.health.show-details=always
+    spring.security.user.name=actuator
+    spring.security.user.password=actuator
