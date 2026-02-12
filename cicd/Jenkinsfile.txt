@@ -115,7 +115,7 @@ spec:
           def fullImage = "${REGISTRY}/${IMAGE_NAME}:${env.IMAGE_TAG}"
           // Aggiorna revision (così in "Synced to" compare il tag invece di "master") e immagine
           sh """
-            (command -v argocd >/dev/null && argocd app set demo-coll --revision ${params.GIT_TAG} --kustomize-image ${fullImage} && argocd app sync demo-coll --async) || echo 'argocd CLI non disponibile: esegui manualmente argocd app set demo-coll --revision ${params.GIT_TAG} --kustomize-image ${fullImage}'
+            (command -v argocd >/dev/null && argocd app set gym-investire-iscritto-ms --revision ${params.GIT_TAG} --kustomize-image ${fullImage} && argocd app sync gym-investire-iscritto-ms --async) || echo 'argocd CLI non disponibile: esegui manualmente argocd app set demo-coll --revision ${params.GIT_TAG} --kustomize-image ${fullImage}'
           """
         }
       }

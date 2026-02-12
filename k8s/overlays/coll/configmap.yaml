@@ -5,7 +5,6 @@ metadata:
 data:
   application.properties: |
     server.port=8080
-    spring.application.name=gym-investire-iscritto-ms
     banner.location=classpath:banner.txt
     logging.level.root=info
     management.endpoints.web.exposure.include=health
