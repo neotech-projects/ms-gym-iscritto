@@ -4,10 +4,9 @@ metadata:
   name: cmap-gym-investire-iscritto-ms
 data:
   application.properties: |
-    server.port=8080
-    banner.location=classpath:banner.txt
-    logging.level.root=info
-    management.endpoints.web.exposure.include=health
-    management.endpoint.health.show-details=always
-    spring.security.user.name=actuator
-    spring.security.user.password=actuator
+    spring.datasource.platform=postgres
+    spring.datasource.url=jdbc:postgresql://10.43.107.205:5432/dipendenti 
+    spring.datasource.username=dba_user
+    spring.datasource.password=Neotech01!
+    spring.datasource.hikari.connectionTimeout=20000
+    spring.datasource.hikari.maximumPoolSize=5
