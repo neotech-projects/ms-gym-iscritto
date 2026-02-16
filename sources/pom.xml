@@ -11,7 +11,7 @@
 	<groupId>it.investiresgr.gym</groupId>
 	<artifactId>ms_dipendenti</artifactId>
 	<version>0.0.5</version>
-	<name>ms_backoffice</name>
+	<name>ms_dipendenti</name>
 	<description>Microservizio Dipendenti</description>
 	
 	<properties>
