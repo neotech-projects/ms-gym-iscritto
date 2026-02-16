@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.ComponentScan;
 
 @SpringBootApplication
-@ComponentScan(basePackages = "srl.neotech.ms_backoffice")
-@MapperScan("srl.neotech.ms_backoffice.dao")
+@ComponentScan(basePackages = "srl.neotech.ms_dipendenti")
+@MapperScan("srl.neotech.ms_dipendenti.dao")
 public class BootApplication {
 
 	public static void main(String[] args) {
