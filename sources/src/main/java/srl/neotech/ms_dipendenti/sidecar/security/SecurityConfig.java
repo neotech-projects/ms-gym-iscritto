@@ -28,10 +28,11 @@ public class SecurityConfig {
 
             http
                 .authorizeHttpRequests(auth -> auth
-                    .requestMatchers("/").permitAll()
+                 //   .requestMatchers("/").permitAll()
                 //    .requestMatchers("/demo/helloSec").authenticated()
                     .requestMatchers("/actuator/health", "/actuator/health/**").permitAll()
-                    .anyRequest().authenticated()
+               //     .anyRequest().authenticated()
+               .anyRequest().permitAll()
                 );
                 
        
