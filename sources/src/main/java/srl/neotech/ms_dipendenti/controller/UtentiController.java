@@ -6,8 +6,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import srl.neotech.ms_dipendenti.dto.LoginRequest;
@@ -35,8 +35,7 @@ public class UtentiController {
     }
 
     @GetMapping("/profilo")
-    public ResponseEntity<Utente> getProfiloUtente(
-            @RequestHeader(value = "X-User-Id", required = true) Integer userId) {
+    public ResponseEntity<Utente> getProfiloUtente(@RequestParam(name = "userId") Integer userId) {
         try {
             Utente profilo = utentiService.getProfiloUtente(userId);
             return ResponseEntity.ok(profilo);
@@ -48,8 +47,7 @@ public class UtentiController {
     }
 
     @GetMapping("/profilo-by-email")
-    public ResponseEntity<Utente> getProfiloUtenteByEmail(
-            @RequestHeader(value = "X-User-Email", required = true) String email) {
+    public ResponseEntity<Utente> getProfiloUtenteByEmail(@RequestParam(name = "email") String email) {
         try {
             Utente profilo = utentiService.getProfiloUtenteByEmail(email);
             return ResponseEntity.ok(profilo);
