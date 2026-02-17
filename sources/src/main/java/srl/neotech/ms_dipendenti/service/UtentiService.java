@@ -40,8 +40,18 @@ public class UtentiService {
         return utenti.get(0);
     }
 
-    public LoginResponse login(String email) {
+    public LoginResponse login(String email, String password) {
+        if (password == null || password.isBlank()) {
+            throw new IllegalArgumentException("La password è obbligatoria");
+        }
         Utente utente = getProfiloUtenteByEmail(email);
+        String passwordDb = utente.getPassword();
+        if (passwordDb == null || passwordDb.isBlank()) {
+            throw new RuntimeException("PASSWORD_NON_IMPOSTATA");
+        }
+        if (!password.equals(passwordDb)) {
+            throw new RuntimeException("CREDENZIALI_NON_VALIDE");
+        }
         return new LoginResponse(utente.getId(), utente.getNome(), utente.getCognome());
     }
 }

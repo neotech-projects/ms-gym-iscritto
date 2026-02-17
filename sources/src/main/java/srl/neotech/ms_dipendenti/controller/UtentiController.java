@@ -25,11 +25,17 @@ public class UtentiController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
         try {
-            LoginResponse response = utentiService.login(loginRequest.getEmail());
+            LoginResponse response = utentiService.login(loginRequest.getEmail(), loginRequest.getPassword());
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         } catch (RuntimeException e) {
+            if ("CREDENZIALI_NON_VALIDE".equals(e.getMessage())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
+            if ("PASSWORD_NON_IMPOSTATA".equals(e.getMessage())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+            }
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
