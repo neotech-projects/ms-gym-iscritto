@@ -24,9 +24,9 @@ public class PrenotazioniController {
     private PrenotazioniService prenotazioniService;
 
     @GetMapping("/mie-prenotazioni")
-    public ResponseEntity<List<Prenotazione>> getMiePrenotazioni(@RequestParam(name = "userId") Integer userId) {
+    public ResponseEntity<List<Prenotazione>> getMiePrenotazioni(@RequestParam(name = "utenteId") Integer utenteId) {
         try {
-            List<Prenotazione> prenotazioni = prenotazioniService.getPrenotazioniByUtenteId(userId);
+            List<Prenotazione> prenotazioni = prenotazioniService.getPrenotazioniByUtenteId(utenteId);
             return ResponseEntity.ok(prenotazioni);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
@@ -35,14 +35,22 @@ public class PrenotazioniController {
         }
     }
 
-    /**
-     * Insert in T_PRENOTAZIONI. Body = Prenotazione dal form (data, oraInizio, durataMinuti, stato).
-     * userId = utente loggato (requestParam); usata e annullata non vengono inseriti.
-     */
-    @PostMapping
-    public ResponseEntity<Prenotazione> creaPrenotazione(@RequestParam(name = "userId") Integer userId, @RequestBody Prenotazione prenotazione) {
+    @GetMapping("/storico")
+    public ResponseEntity<List<Prenotazione>> getStoricoPrenotazioni(@RequestParam(name = "utenteId") Integer utenteId) {
         try {
-            Prenotazione created = prenotazioniService.creaPrenotazione(userId, prenotazione);
+            List<Prenotazione> prenotazioni = prenotazioniService.getStoricoPrenotazioni(utenteId);
+            return ResponseEntity.ok(prenotazioni);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping
+    public ResponseEntity<Prenotazione> creaPrenotazione(@RequestParam(name = "utenteId") Integer utenteId, @RequestBody Prenotazione prenotazione) {
+        try {
+            Prenotazione created = prenotazioniService.creaPrenotazione(utenteId, prenotazione);
             return ResponseEntity.status(HttpStatus.CREATED).body(created);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
@@ -51,9 +59,6 @@ public class PrenotazioniController {
         }
     }
 
-    /**
-     * Aggiorna la riga esistente: imposta annullata e usata per l'id indicato. Non elimina il record.
-     */
     @PatchMapping
     public ResponseEntity<Prenotazione> annullaPrenotazione(@RequestParam(name = "idPrenotazione") Integer idPrenotazione) {
         try {
