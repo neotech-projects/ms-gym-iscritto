@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +18,7 @@ import srl.neotech.ms_dipendenti.dto.Prenotazione;
 import srl.neotech.ms_dipendenti.service.PrenotazioniService;
 
 @RestController
+@CrossOrigin(origins = "*")
 @RequestMapping("/api/prenotazioni")
 public class PrenotazioniController {
 
@@ -30,6 +32,16 @@ public class PrenotazioniController {
             return ResponseEntity.ok(prenotazioni);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @GetMapping("/generali")
+    public ResponseEntity<List<Prenotazione>> getPrenotazioniGenerali() {
+        try {
+            List<Prenotazione> prenotazioni = prenotazioniService.getPrenotazioniGenerali();
+            return ResponseEntity.ok(prenotazioni);
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }

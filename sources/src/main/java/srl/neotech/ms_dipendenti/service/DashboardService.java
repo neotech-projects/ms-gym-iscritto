@@ -1,6 +1,8 @@
 package srl.neotech.ms_dipendenti.service;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,5 +29,13 @@ public class DashboardService {
     /** Lista delle mie prossime prenotazioni (sezione dashboard). */
     public List<Prenotazione> getMiePrenotazioni(Integer utenteId) {
         return prenotazioniService.getPrenotazioniByUtenteId(utenteId);
+    }
+
+    /** Statistiche dashboard: prenotazioni e allenamenti in una sola chiamata (chiavi per frontend). */
+    public Map<String, Object> getStatistiche(Integer utenteId) {
+        Map<String, Object> stats = new HashMap<>();
+        stats.put("prenotazioni", getNumPrenotazioniProssime(utenteId));
+        stats.put("allenamenti", getNumAllenamentiMeseCorrente(utenteId));
+        return stats;
     }
 }

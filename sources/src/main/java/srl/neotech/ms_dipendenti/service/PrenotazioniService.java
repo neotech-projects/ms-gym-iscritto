@@ -55,6 +55,31 @@ public class PrenotazioniService {
         return prenotazioneMapper.selectByExample(example);
     }
 
+    /**
+     * Tutte le prenotazioni del mese corrente per qualsiasi utente: non annullate e non usate.
+     * Anno e mese sono ricavati dalla data odierna.
+     */
+    public List<Prenotazione> getPrenotazioniGenerali() {
+        LocalDate oggi = LocalDate.now();
+        LocalDate inizio = oggi.withDayOfMonth(1);
+        LocalDate fine = inizio.plusMonths(1);
+        Date dataDa = Date.valueOf(inizio);
+        Date dataA = Date.valueOf(fine);
+        PrenotazioneExample example = new PrenotazioneExample();
+        example.createCriteria()
+                .andDataGreaterThanOrEqualTo(dataDa)
+                .andDataLessThan(dataA)
+                .andAnnullataIsNull()
+                .andUsataIsNull();
+        example.or(example.createCriteria()
+                .andDataGreaterThanOrEqualTo(dataDa)
+                .andDataLessThan(dataA)
+                .andAnnullataIsNull()
+                .andUsataEqualTo(false));
+        example.setOrderByClause("data ASC, ora_inizio ASC");
+        return prenotazioneMapper.selectByExample(example);
+    }
+
     /** Numero di prenotazioni con data nel mese corrente (usa campo data, solo date senza timezone). */
     public long countPrenotazioniNelMeseCorrente(Integer utenteId) {
         if (utenteId == null) {
@@ -95,13 +120,13 @@ public class PrenotazioniService {
     /**
      * Aggiorna il record esistente della prenotazione (per id): imposta annullata = now, usata = false, stato = "Annullata".
      */
-    public Prenotazione annullaPrenotazione(Integer id) {
-        if (id == null) {
+    public Prenotazione annullaPrenotazione(Integer idPrenotazione) {
+        if (idPrenotazione == null) {
             throw new IllegalArgumentException("L'ID prenotazione non può essere null");
         }
-        Prenotazione prenotazione = prenotazioneMapper.selectByPrimaryKey(id);
+        Prenotazione prenotazione = prenotazioneMapper.selectByPrimaryKey(idPrenotazione);
         if (prenotazione == null) {
-            throw new RuntimeException("Prenotazione non trovata con id: " + id);
+            throw new RuntimeException("Prenotazione non trovata con id: " + idPrenotazione);
         }
         prenotazione.setAnnullata(new java.util.Date());
         prenotazione.setUsata(false);
