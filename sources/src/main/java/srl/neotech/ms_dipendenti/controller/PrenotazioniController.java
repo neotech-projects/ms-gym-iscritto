@@ -1,5 +1,8 @@
 package srl.neotech.ms_dipendenti.controller;
 
+import java.net.URI;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -48,9 +51,9 @@ public class PrenotazioniController {
     }
 
     @GetMapping("/storico")
-    public ResponseEntity<List<Prenotazione>> getStoricoPrenotazioni(@RequestParam(name = "utenteId") Integer utenteId) {
+    public ResponseEntity<List<Prenotazione>> getStoricoPrenotazioni(@RequestParam(name = "utenteId") Integer utenteId, @RequestParam(name= "auth_token") String authToken) {
         try {
-            List<Prenotazione> prenotazioni = prenotazioniService.getStoricoPrenotazioni(utenteId);
+            List<Prenotazione> prenotazioni = prenotazioniService.getStoricoPrenotazioni(utenteId, authToken);
             return ResponseEntity.ok(prenotazioni);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
@@ -82,6 +85,36 @@ public class PrenotazioniController {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    private static final String APRIPORTA_BASE_URL = "http://cloud.neotech.srl/spa/apriporta";
+
+    /**
+     * Verifica la prenotazione in seguito alla scansione del QR code.
+     * Redirect a cloud.neotech.srl/spa/apriporta?UUID=... con esito e messaggio (porta aperta, nessuna prenotazione, ecc.).
+     */
+    @PostMapping("/check-prenotazione")
+    public ResponseEntity<Void> checkPrenotazione(
+            @RequestParam(name = "uuid") String uuid,
+            @RequestParam(name = "utenteId") Integer utenteId) {
+        try {
+            prenotazioniService.checkPrenotazione(uuid, utenteId);
+            String redirectUrl = APRIPORTA_BASE_URL + "?UUID=" + URLEncoder.encode(uuid, StandardCharsets.UTF_8)
+                    + "&esito=ok&messaggio=" + URLEncoder.encode("Porta aperta", StandardCharsets.UTF_8);
+            return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(redirectUrl)).build();
+        } catch (IllegalArgumentException e) {
+            String redirectUrl = APRIPORTA_BASE_URL + "?UUID=" + URLEncoder.encode(uuid, StandardCharsets.UTF_8)
+                    + "&esito=ko&messaggio=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
+            return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(redirectUrl)).build();
+        } catch (RuntimeException e) {
+            String redirectUrl = APRIPORTA_BASE_URL + "?UUID=" + URLEncoder.encode(uuid, StandardCharsets.UTF_8)
+                    + "&esito=ko&messaggio=" + URLEncoder.encode(e.getMessage(), StandardCharsets.UTF_8);
+            return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(redirectUrl)).build();
+        } catch (Exception e) {
+            String redirectUrl = APRIPORTA_BASE_URL + "?UUID=" + URLEncoder.encode(uuid, StandardCharsets.UTF_8)
+                    + "&esito=ko&messaggio=" + URLEncoder.encode("Errore di sistema", StandardCharsets.UTF_8);
+            return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(redirectUrl)).build();
         }
     }
 }
