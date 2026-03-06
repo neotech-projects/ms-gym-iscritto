@@ -13,6 +13,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -51,7 +52,9 @@ public class PrenotazioniController {
     }
 
     @GetMapping("/storico")
-    public ResponseEntity<List<Prenotazione>> getStoricoPrenotazioni(@RequestParam(name = "utenteId") Integer utenteId, @RequestParam(name= "auth_token") String authToken) {
+    public ResponseEntity<List<Prenotazione>> getStoricoPrenotazioni(
+            @RequestParam(name = "utenteId") Integer utenteId,
+            @RequestHeader(name = "X-Auth-Token", required = true) String authToken) {
         try {
             List<Prenotazione> prenotazioni = prenotazioniService.getStoricoPrenotazioni(utenteId, authToken);
             return ResponseEntity.ok(prenotazioni);

@@ -65,8 +65,8 @@ public class PrenotazioniService {
         }
         UtenteExample exUtente = new UtenteExample();
         exUtente.createCriteria().andIdEqualTo(utenteId).andTokenEqualTo(authToken);
-        Utente utente = utenteMapper.selectByExample(exUtente).get(0);
-        if (utente == null) {
+        List<Utente> utenti = utenteMapper.selectByExample(exUtente);
+        if (utenti == null || utenti.isEmpty()) {
             throw new IllegalArgumentException("L'utente non è autorizzato a vedere le prenotazioni");
         }
         PrenotazioneExample example = new PrenotazioneExample();
