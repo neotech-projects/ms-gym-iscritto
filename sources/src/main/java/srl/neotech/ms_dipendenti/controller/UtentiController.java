@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -46,25 +47,35 @@ public class UtentiController {
     }
 
     @GetMapping("/profilo")
-    public ResponseEntity<Utente> getProfiloUtente(@RequestParam(name = "utenteId") Integer utenteId) {
+    public ResponseEntity<Utente> getProfiloUtente(
+            @RequestParam(name = "utenteId") Integer utenteId,
+            @RequestHeader(name = "authToken", required = true) String authToken) {
         try {
-            Utente profilo = utentiService.getProfiloUtente(utenteId);
+            Utente profilo = utentiService.getProfiloUtente(utenteId, authToken);
             return ResponseEntity.ok(profilo);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         } catch (RuntimeException e) {
+            if ("UTENTE_NON_AUTORIZZATO".equals(e.getMessage())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }
 
     @GetMapping("/profilo-by-email")
-    public ResponseEntity<Utente> getProfiloUtenteByEmail(@RequestParam(name = "email") String email) {
+    public ResponseEntity<Utente> getProfiloUtenteByEmail(
+            @RequestParam(name = "email") String email,
+            @RequestHeader(name = "authToken", required = true) String authToken) {
         try {
-            Utente profilo = utentiService.getProfiloUtenteByEmail(email);
+            Utente profilo = utentiService.getProfiloUtenteByEmail(email, authToken);
             return ResponseEntity.ok(profilo);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         } catch (RuntimeException e) {
+            if ("UTENTE_NON_AUTORIZZATO".equals(e.getMessage())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            }
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
     }

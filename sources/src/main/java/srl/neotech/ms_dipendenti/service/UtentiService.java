@@ -22,19 +22,33 @@ public class UtentiService {
     @Autowired
     private SocietaMapper societaMapper;
 
-    public Utente getProfiloUtente(Integer utenteId) {
+    /**
+     * Restituisce il profilo utente verificando che l'authToken corrisponda al token dell'utente.
+     * Il caricamento avviene con selectByPrimaryKey per avere tutti i campi popolati.
+     */
+    public Utente getProfiloUtente(Integer utenteId, String authToken) {
         if (utenteId == null) {
             throw new IllegalArgumentException("L'ID utente non può essere null");
+        }
+        if (authToken == null || authToken.isBlank()) {
+            throw new IllegalArgumentException("L'authToken è obbligatorio");
         }
         Utente utente = utenteMapper.selectByPrimaryKey(utenteId);
         if (utente == null) {
             throw new RuntimeException("Utente non trovato con ID: " + utenteId);
         }
+        String tokenDb = utente.getToken() != null ? utente.getToken() : "";
+        if (!authToken.trim().equals(tokenDb)) {
+            throw new RuntimeException("UTENTE_NON_AUTORIZZATO");
+        }
         nomeSocieta(utente);
         return utente;
     }
 
-    public Utente getProfiloUtenteByEmail(String email) {
+    /**
+     * Restituisce il profilo utente per email. Se authToken è valorizzato, verifica che coincida con il token dell'utente (per chiamate API); se null/vuoto salta il controllo (es. login).
+     */
+    public Utente getProfiloUtenteByEmail(String email, String authToken) {
         if (email == null || email.trim().isEmpty()) {
             throw new IllegalArgumentException("L'email non può essere null o vuota");
         }
@@ -45,6 +59,12 @@ public class UtentiService {
             throw new RuntimeException("Utente non trovato con email: " + email);
         }
         Utente utente = utenti.get(0);
+        if (authToken != null && !authToken.isBlank()) {
+            String tokenDb = utente.getToken() != null ? utente.getToken() : "";
+            if (!authToken.trim().equals(tokenDb)) {
+                throw new RuntimeException("UTENTE_NON_AUTORIZZATO");
+            }
+        }
         nomeSocieta(utente);
         return utente;
     }
@@ -62,7 +82,7 @@ public class UtentiService {
         if (password == null || password.isBlank()) {
             throw new IllegalArgumentException("La password è obbligatoria");
         }
-        Utente utente = getProfiloUtenteByEmail(email);
+        Utente utente = getProfiloUtenteByEmail(email, null);
         String passwordDb = utente.getPassword();
         if (passwordDb == null || passwordDb.isBlank()) {
             throw new RuntimeException("PASSWORD_NON_IMPOSTATA");

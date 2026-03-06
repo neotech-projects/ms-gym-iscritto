@@ -34,9 +34,15 @@ public class PrenotazioniService {
     /**
      * Prenotazioni dell'utente: prenotate ma non ancora usate e non annullate.
      */
-    public List<Prenotazione> getPrenotazioniByUtenteId(Integer utenteId) {
+    public List<Prenotazione> getPrenotazioniByUtenteId(Integer utenteId, String authToken) {
         if (utenteId == null) {
             throw new IllegalArgumentException("L'ID utente non può essere null");
+        }
+        UtenteExample exUtente = new UtenteExample();
+        exUtente.createCriteria().andIdEqualTo(utenteId).andTokenEqualTo(authToken.trim());
+        List<Utente> utenti = utenteMapper.selectByExample(exUtente);
+        if (utenti == null || utenti.isEmpty()) {
+            throw new IllegalArgumentException("L'utente non è autorizzato a vedere le prenotazioni");
         }
         LocalDate oggi = LocalDate.now();
         java.sql.Date dataOggi = Date.valueOf(oggi);
@@ -101,9 +107,15 @@ public class PrenotazioniService {
     }
 
     /** Numero di prenotazioni con data nel mese corrente (usa campo data, solo date senza timezone). */
-    public long countPrenotazioniNelMeseCorrente(Integer utenteId) {
+    public long countPrenotazioniNelMeseCorrente(Integer utenteId, String authToken) {
         if (utenteId == null) {
             return 0;
+        }
+        UtenteExample exUtente = new UtenteExample();
+        exUtente.createCriteria().andIdEqualTo(utenteId).andTokenEqualTo(authToken.trim());
+        List<Utente> utenti = utenteMapper.selectByExample(exUtente);
+        if (utenti == null || utenti.isEmpty()) {
+            throw new IllegalArgumentException("L'utente non è autorizzato");
         }
         LocalDate oggi = LocalDate.now();
         Date inizioMese = Date.valueOf(oggi.withDayOfMonth(1));
@@ -160,7 +172,7 @@ public class PrenotazioniService {
      * Con utenteId si va su T_PRENOTAZIONI e si prende la prenotazione dell'utente.
      * In T_CONFIGURAZIONI si verifica che l'uuid corrisponda (chiave = uuid; valore è varchar, non id).
      */
-    public Prenotazione checkPrenotazione(String uuid, Integer utenteId) {
+    public Prenotazione checkPrenotazione(String uuid, Integer utenteId, String authToken) {
         if (uuid == null || uuid.isBlank()) {
             throw new IllegalArgumentException("L'UUID non può essere null o vuoto");
         }
@@ -173,7 +185,7 @@ public class PrenotazioniService {
             throw new RuntimeException("UUID non valido");
         }
         // Da T_PRENOTAZIONI si prende la prenotazione per utenteId (la prima valida)
-        List<Prenotazione> prenotazioni = getPrenotazioniByUtenteId(utenteId);
+        List<Prenotazione> prenotazioni = getPrenotazioniByUtenteId(utenteId, authToken);
         if (prenotazioni == null || prenotazioni.isEmpty()) {
             throw new RuntimeException("Nessuna prenotazione trovata per l'utente");
         }

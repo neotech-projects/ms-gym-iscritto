@@ -30,9 +30,11 @@ public class PrenotazioniController {
     private PrenotazioniService prenotazioniService;
 
     @GetMapping("/mie-prenotazioni")
-    public ResponseEntity<List<Prenotazione>> getMiePrenotazioni(@RequestParam(name = "utenteId") Integer utenteId) {
+    public ResponseEntity<List<Prenotazione>> getMiePrenotazioni(
+            @RequestParam(name = "utenteId") Integer utenteId,
+            @RequestHeader(name = "authToken", required = true) String authToken) {
         try {
-            List<Prenotazione> prenotazioni = prenotazioniService.getPrenotazioniByUtenteId(utenteId);
+            List<Prenotazione> prenotazioni = prenotazioniService.getPrenotazioniByUtenteId(utenteId, authToken);
             return ResponseEntity.ok(prenotazioni);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
@@ -54,7 +56,7 @@ public class PrenotazioniController {
     @GetMapping("/storico")
     public ResponseEntity<List<Prenotazione>> getStoricoPrenotazioni(
             @RequestParam(name = "utenteId") Integer utenteId,
-            @RequestHeader(name = "X-Auth-Token", required = true) String authToken) {
+            @RequestHeader(name = "authToken", required = true) String authToken) {
         try {
             List<Prenotazione> prenotazioni = prenotazioniService.getStoricoPrenotazioni(utenteId, authToken);
             return ResponseEntity.ok(prenotazioni);
@@ -100,9 +102,10 @@ public class PrenotazioniController {
     @PostMapping("/check-prenotazione")
     public ResponseEntity<Void> checkPrenotazione(
             @RequestParam(name = "uuid") String uuid,
-            @RequestParam(name = "utenteId") Integer utenteId) {
+            @RequestParam(name = "utenteId") Integer utenteId,
+            @RequestHeader(name = "authToken", required = true) String authToken) {
         try {
-            prenotazioniService.checkPrenotazione(uuid, utenteId);
+            prenotazioniService.checkPrenotazione(uuid, utenteId, authToken);
             String redirectUrl = APRIPORTA_BASE_URL + "?UUID=" + URLEncoder.encode(uuid, StandardCharsets.UTF_8)
                     + "&esito=ok&messaggio=" + URLEncoder.encode("Porta aperta", StandardCharsets.UTF_8);
             return ResponseEntity.status(HttpStatus.FOUND).location(URI.create(redirectUrl)).build();
