@@ -8,11 +8,20 @@ import java.util.Calendar;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.util.LinkedMultiValueMap;
+import org.springframework.util.MultiValueMap;
+import org.springframework.web.client.RestTemplate;
 
+import srl.neotech.ms_dipendenti.dao.AccessoMapper;
 import srl.neotech.ms_dipendenti.dao.ConfigurazioneMapper;
 import srl.neotech.ms_dipendenti.dao.PrenotazioneMapper;
 import srl.neotech.ms_dipendenti.dao.UtenteMapper;
+import srl.neotech.ms_dipendenti.dto.Accesso;
 import srl.neotech.ms_dipendenti.dto.Configurazione;
 import srl.neotech.ms_dipendenti.dto.Prenotazione;
 import srl.neotech.ms_dipendenti.dto.PrenotazioneExample;
@@ -22,6 +31,12 @@ import srl.neotech.ms_dipendenti.dto.UtenteExample;
 @Service
 public class PrenotazioniService {
 
+    @Value("${shelly.id}")
+    private String shellyId;
+
+    @Value("${shelly.key}")
+    private String shellyKey;
+
     @Autowired
     private PrenotazioneMapper prenotazioneMapper;
 
@@ -30,6 +45,14 @@ public class PrenotazioniService {
 
     @Autowired
     private UtenteMapper utenteMapper;
+
+    @Autowired
+    private AccessoMapper accessoMapper;
+
+    @Autowired
+    private RestTemplate restTemplate;
+
+    private static final String SHELLY_RELAY_CONTROL_URL = "https://shelly-250-eu.shelly.cloud/device/relay/control";
 
     /**
      * Prenotazioni dell'utente: prenotate ma non ancora usate e non annullate.
@@ -172,16 +195,16 @@ public class PrenotazioniService {
      * Con utenteId si va su T_PRENOTAZIONI e si prende la prenotazione dell'utente.
      * In T_CONFIGURAZIONI si verifica che l'uuid corrisponda (chiave = uuid; valore è varchar, non id).
      */
-    public Prenotazione checkPrenotazione(String uuid, Integer utenteId, String authToken) {
-        if (uuid == null || uuid.isBlank()) {
+    public Prenotazione checkPrenotazione(String uuidDoor, Integer utenteId, String authToken) {
+        if (uuidDoor == null || uuidDoor.isBlank()) {
             throw new IllegalArgumentException("L'UUID non può essere null o vuoto");
         }
         if (utenteId == null) {
             throw new IllegalArgumentException("L'ID utente non può essere null");
         }
         // Verifica che l'uuid esista in T_CONFIGURAZIONI (chiave = uuid, valore è varchar)
-        Configurazione config = configurazioneMapper.selectByPrimaryKey(uuid.trim());
-        if (config == null) {
+        Configurazione config = configurazioneMapper.selectByPrimaryKey("UUID_DOOR");
+        if (config == null || !config.getValore().equals(uuidDoor)) {
             throw new RuntimeException("UUID non valido");
         }
         // Da T_PRENOTAZIONI si prende la prenotazione per utenteId (la prima valida)
@@ -226,6 +249,49 @@ public class PrenotazioniService {
                         + primoAccessoConsentito.toLocalTime().toString() + ")");
             }
         }
-        return prenotazione;
+        try {
+            apriPorta();
+            registraAccesso(utenteId, prenotazione.getId(), true);
+            return prenotazione;
+        } catch (Exception e) {
+            registraAccesso(utenteId, prenotazione.getId(), false);
+            throw e;
+        }
+    }
+
+    private void registraAccesso(Integer utenteId, Integer prenotazioneId, boolean portaAperta) {
+        Accesso accesso = new Accesso();
+        accesso.setUtenteId(utenteId);
+        accesso.setPrenotazioneId(prenotazioneId);
+        accesso.setDataOraAccesso(new java.util.Date());
+        accesso.setEsito(portaAperta ? "ok" : "ko");
+        accessoMapper.insertSelective(accesso);
+    }
+
+    private void apriPorta() {
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
+        params.add("id", shellyId);
+        params.add("turn", "on");
+        params.add("channel", "0");
+        params.add("auth_key", shellyKey);
+        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+        restTemplate.postForEntity(SHELLY_RELAY_CONTROL_URL, request, String.class);
+
+        try {
+        Thread.sleep(500);
+        } catch (InterruptedException e) {
+            throw new RuntimeException("Errore nell'apertura della porta", e);
+        }
+        headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+        params = new LinkedMultiValueMap<>();
+        params.add("id", shellyId);
+        params.add("turn", "off");
+        params.add("channel", "0");
+        params.add("auth_key", shellyKey);
+        request = new HttpEntity<>(params, headers);
+        restTemplate.postForEntity(SHELLY_RELAY_CONTROL_URL, request, String.class);
     }
 }

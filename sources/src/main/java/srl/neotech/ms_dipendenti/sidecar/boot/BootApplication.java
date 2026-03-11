@@ -3,7 +3,9 @@ package srl.neotech.ms_dipendenti.sidecar.boot;
 import org.mybatis.spring.annotation.MapperScan;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
+import org.springframework.web.client.RestTemplate;
 
 @SpringBootApplication
 @ComponentScan(basePackages = "srl.neotech.ms_dipendenti")
@@ -14,4 +16,8 @@ public class BootApplication {
 		SpringApplication.run(BootApplication.class, args);
 	}
 
+	@Bean
+	public RestTemplate restTemplate() {
+		return new RestTemplate();
+	}
 }
