@@ -203,7 +203,7 @@ public class PrenotazioniService {
             throw new IllegalArgumentException("L'ID utente non può essere null");
         }
         // Verifica che l'uuid esista in T_CONFIGURAZIONI (chiave = uuid, valore è varchar)
-        Configurazione config = configurazioneMapper.selectByPrimaryKey("UUID_DOOR");
+        Configurazione config = configurazioneMapper.selectByPrimaryKey("QRCODE_UUID");
         if (config == null || !config.getValore().equals(uuidDoor)) {
             throw new RuntimeException("UUID non valido");
         }
