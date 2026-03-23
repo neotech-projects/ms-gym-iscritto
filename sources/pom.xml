@@ -10,7 +10,7 @@
 
 	<groupId>it.investiresgr.gym</groupId>
 	<artifactId>ms_dipendenti</artifactId>
-	<version>0.0.5</version>
+	<version>1.0.0</version>
 	<name>ms_dipendenti</name>
 	<description>Microservizio Dipendenti</description>
 	

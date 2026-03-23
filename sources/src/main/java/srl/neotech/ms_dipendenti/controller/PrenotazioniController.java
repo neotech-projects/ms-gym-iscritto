@@ -92,11 +92,11 @@ public class PrenotazioniController {
 
     @PostMapping("/check-prenotazione")
     public ResponseEntity<String> checkPrenotazione(
-            @RequestParam(name = "uuid") String uuidDoor,
+            @RequestParam(name = "uuid_door") String uuid_door,
             @RequestParam(name = "utenteId") Integer utenteId,
             @RequestHeader(name = "authToken", required = true) String authToken) {
         try {
-            prenotazioniService.checkPrenotazione(uuidDoor, utenteId, authToken);
+            prenotazioniService.checkPrenotazione(uuid_door, utenteId, authToken);
             return ResponseEntity.ok("ok");
         } catch (IllegalArgumentException e) {
             String msg = e.getMessage() != null && !e.getMessage().isBlank() ? e.getMessage() : "Richiesta non valida";

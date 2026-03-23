@@ -195,8 +195,8 @@ public class PrenotazioniService {
      * Con utenteId si va su T_PRENOTAZIONI e si prende la prenotazione dell'utente.
      * In T_CONFIGURAZIONI si verifica che l'uuid corrisponda (chiave = uuid; valore è varchar, non id).
      */
-    public Prenotazione checkPrenotazione(String uuidDoor, Integer utenteId, String authToken) {
-        if (uuidDoor == null || uuidDoor.isBlank()) {
+    public Prenotazione checkPrenotazione(String uuid_door, Integer utenteId, String authToken) {
+        if (uuid_door == null || uuid_door.isBlank()) {
             throw new IllegalArgumentException("L'UUID non può essere null o vuoto");
         }
         if (utenteId == null) {
@@ -204,7 +204,7 @@ public class PrenotazioniService {
         }
         // Verifica che l'uuid esista in T_CONFIGURAZIONI (chiave = uuid, valore è varchar)
         Configurazione config = configurazioneMapper.selectByPrimaryKey("QRCODE_UUID");
-        if (config == null || !config.getValore().equals(uuidDoor)) {
+        if (config == null || !config.getValore().equals(uuid_door)) {
             throw new RuntimeException("UUID non valido");
         }
         // Da T_PRENOTAZIONI si prende la prenotazione per utenteId (la prima valida)
@@ -277,21 +277,6 @@ public class PrenotazioniService {
         params.add("channel", "0");
         params.add("auth_key", shellyKey);
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-        restTemplate.postForEntity(SHELLY_RELAY_CONTROL_URL, request, String.class);
-
-        try {
-        Thread.sleep(500);
-        } catch (InterruptedException e) {
-            throw new RuntimeException("Errore nell'apertura della porta", e);
-        }
-        headers = new HttpHeaders();
-        headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
-        params = new LinkedMultiValueMap<>();
-        params.add("id", shellyId);
-        params.add("turn", "off");
-        params.add("channel", "0");
-        params.add("auth_key", shellyKey);
-        request = new HttpEntity<>(params, headers);
         restTemplate.postForEntity(SHELLY_RELAY_CONTROL_URL, request, String.class);
     }
 }
