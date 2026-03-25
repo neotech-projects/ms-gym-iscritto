@@ -26,6 +26,11 @@ public class PrenotazioniController {
     @Autowired
     private PrenotazioniService prenotazioniService;
 
+    @GetMapping("/test")
+    public String test() {
+        return "ciao";
+    }
+
     @GetMapping("/mie-prenotazioni")
     public ResponseEntity<List<Prenotazione>> getMiePrenotazioni(
             @RequestParam(name = "utenteId") Integer utenteId,
