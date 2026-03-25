@@ -32,13 +32,13 @@ spec:
               subPath: application.properties
           readinessProbe:
             httpGet:
-              path: /actuator/health
+              path: /api/iscritto-ms/actuator/health
               port: http
             initialDelaySeconds: 10
             periodSeconds: 10
           livenessProbe:
             httpGet:
-              path: /actuator/health
+              path: /api/iscritto-ms/actuator/health
               port: http
             initialDelaySeconds: 30
             periodSeconds: 20

@@ -5,6 +5,7 @@ metadata:
   namespace: ns-gym-investire-coll
 data:
   application.properties: |
+    server.servlet.context-path=/api/iscritto-ms
     server.port=8080
     banner.location=classpath:banner.txt
     logging.level.root=info
