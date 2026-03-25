@@ -4,7 +4,6 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.Calendar;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -237,9 +236,7 @@ public class PrenotazioniService {
                     : LocalDate.now();
             LocalTime oraInizio = LocalTime.of(0, 0);
             if (prenotazione.getOraInizio() != null) {
-                Calendar cal = Calendar.getInstance();
-                cal.setTime(prenotazione.getOraInizio());
-                oraInizio = LocalTime.of(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND));
+                oraInizio = prenotazione.getOraInizio();
             }
             LocalDateTime inizioPrenotazione = LocalDateTime.of(dataPrenotazione, oraInizio);
             LocalDateTime primoAccessoConsentito = inizioPrenotazione.minusMinutes(minutiPrefetch);

@@ -1,6 +1,9 @@
 package srl.neotech.ms_dipendenti.dto;
 
+import java.time.LocalTime;
 import java.util.Date;
+
+import org.springframework.cglib.core.Local;
 
 public class Prenotazione {
     /**
@@ -37,7 +40,7 @@ public class Prenotazione {
      *
      * @mbg.generated Mon Mar 02 16:43:28 CET 2026
      */
-    private Date oraInizio;
+    private LocalTime oraInizio;
 
     /**
      *
@@ -164,7 +167,7 @@ public class Prenotazione {
      *
      * @mbg.generated Mon Mar 02 16:43:28 CET 2026
      */
-    public Date getOraInizio() {
+    public LocalTime getOraInizio() {
         return oraInizio;
     }
 
@@ -176,7 +179,7 @@ public class Prenotazione {
      *
      * @mbg.generated Mon Mar 02 16:43:28 CET 2026
      */
-    public void setOraInizio(Date oraInizio) {
+    public void setOraInizio(LocalTime oraInizio) {
         this.oraInizio = oraInizio;
     }
 
