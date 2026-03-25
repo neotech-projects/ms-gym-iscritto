@@ -4,7 +4,6 @@ metadata:
   name: cmap-gym-investire-backoffice-ms
 data:
   application.properties: |
-    server.servlet.context-path=/api/iscritto-ms
     server.port=8080
     banner.location=classpath:banner.txt
     logging.level.root=info

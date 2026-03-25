@@ -79,9 +79,8 @@ public class UtentiService {
     }
 
     public LoginResponse login(String email, String password) {
-        
+
         email = email.trim().toLowerCase();
-        password = password != null ? password.trim() : null;
 
         if (password == null || password.isBlank()) {
             throw new IllegalArgumentException("La password è obbligatoria");

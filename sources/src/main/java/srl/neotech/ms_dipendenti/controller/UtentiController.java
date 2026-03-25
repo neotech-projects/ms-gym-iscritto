@@ -31,9 +31,7 @@ public class UtentiController {
     @PostMapping("/login")
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
         try {
-            System.out.println("loginRequest: " + loginRequest.getEmail() + " " + loginRequest.getPassword());
             LoginResponse response = utentiService.login(loginRequest.getEmail(), loginRequest.getPassword());
-            System.out.println("response: " + response.getId());
             return ResponseEntity.ok(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
