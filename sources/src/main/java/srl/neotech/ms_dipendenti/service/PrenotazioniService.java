@@ -4,17 +4,26 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Locale;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.MimeMessageHelper;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+
+import jakarta.mail.internet.MimeMessage;
 
 import srl.neotech.ms_dipendenti.dao.AccessoMapper;
 import srl.neotech.ms_dipendenti.dao.ConfigurazioneMapper;
@@ -30,11 +39,25 @@ import srl.neotech.ms_dipendenti.dto.UtenteExample;
 @Service
 public class PrenotazioniService {
 
+    private static final Logger log = LoggerFactory.getLogger(PrenotazioniService.class);
+
+    private static final DateTimeFormatter DATA_IT = DateTimeFormatter.ofPattern("EEEE d MMMM yyyy", Locale.ITALIAN);
+    private static final DateTimeFormatter ORA = DateTimeFormatter.ofPattern("HH:mm");
+
     @Value("${shelly.id}")
     private String shellyId;
 
     @Value("${shelly.key}")
     private String shellyKey;
+
+    @Value("${spring.mail.from:}")
+    private String mailFrom;
+
+    @Value("${spring.mail.username:}")
+    private String mailUsername;
+
+    @Autowired(required = false)
+    private JavaMailSender javaMailSender;
 
     @Autowired
     private PrenotazioneMapper prenotazioneMapper;
@@ -52,6 +75,146 @@ public class PrenotazioniService {
     private RestTemplate restTemplate;
 
     private static final String SHELLY_RELAY_CONTROL_URL = "https://shelly-250-eu.shelly.cloud/device/relay/control";
+
+    /**
+     * Ogni giorno alle 08:00 (fuso {@code spring.task.scheduling.time-zone}) invia un promemoria HTML
+     * per ogni prenotazione valida con data uguale al giorno corrente.
+     */
+    @Scheduled(cron = "0 0 7 * * ?", zone = "${spring.task.scheduling.time-zone:Europe/Rome}")
+    public void sendRemainderPrenotazione() {
+        if (javaMailSender == null) {
+            log.warn("JavaMailSender non configurato: promemoria prenotazioni saltato");
+            return;
+        }
+        String email = mittenteEmail();
+        if (email == null || email.isBlank()) {
+            log.warn("spring.mail.from e spring.mail.username vuoti: promemoria prenotazioni saltato");
+            return;
+        }
+        List<Prenotazione> oggi = findPrenotazioniValidePerData(LocalDate.now());
+        if (oggi.isEmpty()) {
+            log.info("Promemoria prenotazioni: nessuna prenotazione valida per oggi");
+            return;
+        }
+        int inviate = 0;
+        for (Prenotazione prenotazione : oggi) {
+            try {
+                if (prenotazione.getUtenteId() == null) {
+                    continue;
+                }
+                Utente utente = utenteMapper.selectByPrimaryKey(prenotazione.getUtenteId());
+                if (utente == null || utente.getEmail() == null || utente.getEmail().isBlank()) {
+                    log.warn("Utente {} senza email: prenotazione {} saltata", prenotazione.getUtenteId(), prenotazione.getId());
+                    continue;
+                }
+                String html = buildReminderHtml(utente, prenotazione);
+                MimeMessage message = javaMailSender.createMimeMessage();
+                MimeMessageHelper helper = new MimeMessageHelper(message, false, "UTF-8");
+                helper.setFrom(email);
+                helper.setTo(utente.getEmail().trim());
+                helper.setSubject("Promemoria: la tua prenotazione in palestra");
+                helper.setText(html, true);
+                javaMailSender.send(message);
+                inviate++;
+            } catch (Exception e) {
+                log.error("Errore invio promemoria per prenotazione id={}: {}", prenotazione.getId(), e.getMessage(), e);
+            }
+        }
+        log.info("Promemoria prenotazioni: inviate {} email su {} prenotazioni", inviate, oggi.size());
+    }
+
+    /**
+     * Prenotazioni non annullate, non usate, con data uguale a {@code data}.
+     */
+    private List<Prenotazione> findPrenotazioniValidePerData(LocalDate data) {
+        Date sqlData = Date.valueOf(data);
+        PrenotazioneExample example = new PrenotazioneExample();
+        example.createCriteria()
+                .andDataEqualTo(sqlData)
+                .andAnnullataIsNull()
+                .andUsataIsNull();
+        example.or(example.createCriteria()
+                .andDataEqualTo(sqlData)
+                .andAnnullataIsNull()
+                .andUsataEqualTo(false));
+        example.setOrderByClause("ora_inizio ASC");
+        return prenotazioneMapper.selectByExample(example);
+    }
+
+    private String mittenteEmail() {
+        if (mailFrom != null && !mailFrom.isBlank()) {
+            return mailFrom.trim();
+        }
+        return mailUsername != null ? mailUsername.trim() : "";
+    }
+
+    private static String buildReminderHtml(Utente utente, Prenotazione prenotazione) {
+        LocalDate giorno = prenotazione.getData() != null
+                ? new Date(prenotazione.getData().getTime()).toLocalDate()
+                : LocalDate.now();
+        String dataTesto = DATA_IT.format(giorno);
+        String oraTesto = prenotazione.getOraInizio() != null ? ORA.format(prenotazione.getOraInizio()) : "—";
+        String durata = prenotazione.getDurataMinuti() != null
+                ? prenotazione.getDurataMinuti() + " minuti"
+                : "—";
+        String nome = escapeHtml(utente.getNome());
+        String cognome = escapeHtml(utente.getCognome());
+        return """
+                <!DOCTYPE html>
+                <html lang="it">
+                <head>
+                  <meta charset="UTF-8" />
+                  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+                  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet" />
+                  <title>Promemoria prenotazione</title>
+                </head>
+                <body style="margin:0;padding:0;background-color:#f4f2ee;">
+                  <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="background-color:#f4f2ee;padding:24px 12px;">
+                    <tr>
+                      <td align="center">
+                        <table role="presentation" width="100%%" style="max-width:520px;background:#ffffff;border-radius:12px;overflow:hidden;box-shadow:0 8px 24px rgba(30,40,50,0.08);">
+                          <tr>
+                            <td style="background:linear-gradient(135deg,#1a3a4a 0%%,#2d5a6e 100%%);padding:28px 24px;">
+                              <p style="margin:0;font-family:'DM Sans',system-ui,Segoe UI,Helvetica,Arial,sans-serif;font-size:13px;letter-spacing:0.12em;text-transform:uppercase;color:rgba(255,255,255,0.85);">Promemoria</p>
+                              <h1 style="margin:8px 0 0;font-family:'DM Sans',system-ui,Segoe UI,Helvetica,Arial,sans-serif;font-size:22px;font-weight:600;color:#ffffff;line-height:1.3;">La tua sessione in palestra</h1>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:28px 24px 8px;font-family:'DM Sans',system-ui,Segoe UI,Helvetica,Arial,sans-serif;font-size:16px;line-height:1.6;color:#2c3338;">
+                              <p style="margin:0 0 16px;">Ciao <strong>%s %s</strong>,</p>
+                              <p style="margin:0 0 16px;">Ti ricordiamo che hai una <strong>prenotazione confermata</strong> per oggi.</p>
+                              <table role="presentation" width="100%%" cellspacing="0" cellpadding="0" style="background:#f8f9fa;border-radius:8px;border:1px solid #e8eaed;">
+                                <tr>
+                                  <td style="padding:16px 18px;font-family:'DM Sans',system-ui,Segoe UI,Helvetica,Arial,sans-serif;font-size:15px;color:#2c3338;">
+                                    <p style="margin:0 0 8px;"><span style="color:#5f6b73;">Data</span><br /><strong style="color:#1a3a4a;">%s</strong></p>
+                                    <p style="margin:0 0 8px;"><span style="color:#5f6b73;">Ora di inizio</span><br /><strong style="color:#1a3a4a;">%s</strong></p>
+                                    <p style="margin:0;"><span style="color:#5f6b73;">Durata</span><br /><strong style="color:#1a3a4a;">%s</strong></p>
+                                  </td>
+                                </tr>
+                              </table>
+                              <p style="margin:20px 0 0;font-size:14px;color:#5f6b73;">Arriva qualche minuto prima dell’orario indicato. Buon allenamento!</p>
+                            </td>
+                          </tr>
+                          <tr>
+                            <td style="padding:0 24px 28px;font-family:'DM Sans',system-ui,Segoe UI,Helvetica,Arial,sans-serif;font-size:12px;color:#9aa3a9;">
+                              Messaggio automatico, non rispondere a questa email.
+                            </td>
+                          </tr>
+                        </table>
+                      </td>
+                    </tr>
+                  </table>
+                </body>
+                </html>
+                """.formatted(nome, cognome, dataTesto, oraTesto, durata);
+    }
+
+    private static String escapeHtml(String s) {
+        if (s == null || s.isEmpty()) {
+            return "";
+        }
+        return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;");
+    }
 
     /**
      * Prenotazioni dell'utente: prenotate ma non ancora usate e non annullate.
