@@ -77,7 +77,7 @@ public class PrenotazioniService {
     private static final String SHELLY_RELAY_CONTROL_URL = "https://shelly-250-eu.shelly.cloud/device/relay/control";
 
     /**
-     * Ogni giorno alle 08:00 (fuso {@code spring.task.scheduling.time-zone}) invia un promemoria HTML
+     * Ogni giorno invia un promemoria HTML
      * per ogni prenotazione valida con data uguale al giorno corrente.
      */
     @Scheduled(cron = "0 0 7 * * ?", zone = "${spring.task.scheduling.time-zone:Europe/Rome}")
@@ -368,6 +368,21 @@ public class PrenotazioniService {
         Configurazione config = configurazioneMapper.selectByPrimaryKey("QRCODE_UUID");
         if (config == null || !config.getValore().equals(uuid_door)) {
             throw new RuntimeException("UUID non valido");
+        }
+        Utente utente = utenteMapper.selectByPrimaryKey(utenteId);
+        if (utente == null || utente.getToken() == null || !utente.getToken().equals(authToken.trim())) {
+            throw new IllegalArgumentException("L'utente non è autorizzato a vedere le prenotazioni");
+        }
+        String tipoUtente = utente.getTipoUtente();
+        if (tipoUtente != null && tipoUtente.trim().equalsIgnoreCase("personal trainer")) {
+            try {
+                apriPorta();
+                registraAccesso(utenteId, null, true);
+                return null;
+            } catch (Exception e) {
+                registraAccesso(utenteId, null, false);
+                throw e;
+            }
         }
         // Da T_PRENOTAZIONI si prende la prenotazione per utenteId (la prima valida)
         List<Prenotazione> prenotazioni = getPrenotazioniByUtenteId(utenteId, authToken);

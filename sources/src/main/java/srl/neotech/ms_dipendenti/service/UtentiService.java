@@ -90,7 +90,7 @@ public class UtentiService {
         if (passwordDb == null || passwordDb.isBlank()) {
             throw new RuntimeException("PASSWORD_NON_IMPOSTATA");
         }
-        if (!password.equals(passwordDb)) {
+        if (!password.equals(passwordDb) || !email.equals(utente.getEmail())) {
             throw new RuntimeException("CREDENZIALI_NON_VALIDE");
         }
         return new LoginResponse(utente.getId(), utente.getNome(), utente.getCognome(), utente.getEmail(), utente.getToken());
