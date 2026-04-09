@@ -69,6 +69,20 @@ public class UtentiService {
         return utente;
     }
 
+    /** Usato da check-prenotazione quando l'id utente arriva solo dal cookie di sessione. */
+    public Utente findUtenteByAuthToken(String authToken) {
+        if (authToken == null || authToken.isBlank()) {
+            throw new IllegalArgumentException("L'authToken è obbligatorio");
+        }
+        UtenteExample example = new UtenteExample();
+        example.createCriteria().andTokenEqualTo(authToken.trim());
+        List<Utente> utenti = utenteMapper.selectByExample(example);
+        if (utenti == null || utenti.isEmpty()) {
+            throw new RuntimeException("UTENTE_NON_TROVATO");
+        }
+        return utenti.get(0);
+    }
+
     private void nomeSocieta(Utente utente) {
         if (utente.getSocietaId() != null) {
             Societa societa = societaMapper.selectByPrimaryKey(utente.getSocietaId());

@@ -1,7 +1,12 @@
 package srl.neotech.ms_dipendenti.controller;
 
+import java.time.Duration;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -21,9 +26,21 @@ import srl.neotech.ms_dipendenti.dto.Utente;
 import srl.neotech.ms_dipendenti.service.UtentiService;
 
 @RestController
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "https://gyminvestire.neotech.srl", allowCredentials = "true")
 @RequestMapping("/api/utenti")
 public class UtentiController {
+
+    private static final String SESSION_COOKIE_NAME = "ISCRITTO_AUTH_TOKEN";
+
+    /** HTTPS + SPA cross-origin: true e same-site=None (vedi application-prod.properties). */
+    @Value("${app.session.cookie.secure:false}")
+    private boolean sessionCookieSecure;
+
+    @Value("${app.session.cookie.same-site:Lax}")
+    private String sessionCookieSameSite;
+
+    @Value("${app.session.cookie.max-age-days:60}")
+    private int sessionCookieMaxAgeDays;
 
     @Autowired
     private UtentiService utentiService;
@@ -32,7 +49,19 @@ public class UtentiController {
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
         try {
             LoginResponse response = utentiService.login(loginRequest.getEmail(), loginRequest.getPassword());
-            return ResponseEntity.ok(response);
+            String sameSite = sessionCookieSameSite != null ? sessionCookieSameSite.trim() : "Lax";
+            ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from(SESSION_COOKIE_NAME, response.getToken())
+                    .httpOnly(true)
+                    .path("/")
+                    .maxAge(Duration.ofDays(sessionCookieMaxAgeDays))
+                    .secure(sessionCookieSecure);
+            if (!sameSite.isEmpty()) {
+                cookieBuilder = cookieBuilder.sameSite(sameSite);
+            }
+            ResponseCookie cookie = cookieBuilder.build();
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                    .body(response);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().build();
         } catch (RuntimeException e) {

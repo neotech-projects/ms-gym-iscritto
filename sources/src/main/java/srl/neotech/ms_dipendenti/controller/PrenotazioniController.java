@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CookieValue;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -16,15 +17,22 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import srl.neotech.ms_dipendenti.dto.Prenotazione;
+import srl.neotech.ms_dipendenti.dto.Utente;
 import srl.neotech.ms_dipendenti.service.PrenotazioniService;
+import srl.neotech.ms_dipendenti.service.UtentiService;
 
 @RestController
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "https://gyminvestire.neotech.srl", allowCredentials = "true")
 @RequestMapping("/api/prenotazioni")
 public class PrenotazioniController {
 
+    private static final String SESSION_COOKIE_NAME = "ISCRITTO_AUTH_TOKEN";
+
     @Autowired
     private PrenotazioniService prenotazioniService;
+
+    @Autowired
+    private UtentiService utentiService;
 
     @GetMapping("/test")
     public String test() {
@@ -98,10 +106,32 @@ public class PrenotazioniController {
     @PostMapping("/check-prenotazione")
     public ResponseEntity<String> checkPrenotazione(
             @RequestParam(name = "uuid_door") String uuid_door,
-            @RequestParam(name = "utenteId") Integer utenteId,
-            @RequestHeader(name = "authToken", required = true) String authToken) {
+            @RequestParam(name = "utenteId", required = false) Integer utenteId,
+            @RequestHeader(name = "authToken", required = false) String authToken,
+            @CookieValue(value = SESSION_COOKIE_NAME, required = false) String sessionCookie) {
         try {
-            prenotazioniService.checkPrenotazione(uuid_door, utenteId, authToken);
+            String token = null;
+            if (authToken != null && !authToken.isBlank()) {
+                token = authToken.trim();
+            } else if (sessionCookie != null && !sessionCookie.isBlank()) {
+                token = sessionCookie.trim();
+            }
+            if (token == null) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Sessione richiesta");
+            }
+            Integer resolvedUtenteId = utenteId;
+            if (resolvedUtenteId == null) {
+                try {
+                    Utente u = utentiService.findUtenteByAuthToken(token);
+                    resolvedUtenteId = u.getId();
+                } catch (RuntimeException e) {
+                    if ("UTENTE_NON_TROVATO".equals(e.getMessage())) {
+                        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Sessione non valida");
+                    }
+                    throw e;
+                }
+            }
+            prenotazioniService.checkPrenotazione(uuid_door, resolvedUtenteId, token);
             return ResponseEntity.ok("ok");
         } catch (IllegalArgumentException e) {
             String msg = e.getMessage() != null && !e.getMessage().isBlank() ? e.getMessage() : "Richiesta non valida";
