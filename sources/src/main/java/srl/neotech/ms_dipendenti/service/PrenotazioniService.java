@@ -4,6 +4,7 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Locale;
@@ -55,6 +56,9 @@ public class PrenotazioniService {
 
     @Value("${spring.mail.username:}")
     private String mailUsername;
+
+    @Value("${spring.task.scheduling.time-zone:Europe/Rome}")
+    private String schedulingTimeZone;
 
     @Autowired(required = false)
     private JavaMailSender javaMailSender;
@@ -364,6 +368,7 @@ public class PrenotazioniService {
         if (utenteId == null) {
             throw new IllegalArgumentException("L'ID utente non può essere null");
         }
+        ZoneId zone = ZoneId.of(schedulingTimeZone);
         // Verifica che l'uuid esista in T_CONFIGURAZIONI (chiave = uuid, valore è varchar)
         Configurazione config = configurazioneMapper.selectByPrimaryKey("QRCODE_UUID");
         if (config == null || !config.getValore().equals(uuid_door)) {
@@ -395,7 +400,7 @@ public class PrenotazioniService {
         }
         if (prenotazione.getData() != null) {
             LocalDate dataPrenotazione = new java.sql.Date(prenotazione.getData().getTime()).toLocalDate();
-            if (dataPrenotazione.isBefore(LocalDate.now())) {
+            if (dataPrenotazione.isBefore(LocalDate.now(zone))) {
                 throw new RuntimeException("Prenotazione scaduta");
             }
         }
@@ -408,10 +413,10 @@ public class PrenotazioniService {
             } catch (NumberFormatException e) {
                 minutiPrefetch = 0;
             }
-            LocalDateTime oraAttuale = LocalDateTime.now();
+            LocalDateTime oraAttuale = LocalDateTime.now(zone);
             LocalDate dataPrenotazione = prenotazione.getData() != null
                     ? new java.sql.Date(prenotazione.getData().getTime()).toLocalDate()
-                    : LocalDate.now();
+                    : LocalDate.now(zone);
             LocalTime oraInizio = LocalTime.of(0, 0);
             if (prenotazione.getOraInizio() != null) {
                 oraInizio = prenotazione.getOraInizio();
