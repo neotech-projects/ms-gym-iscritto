@@ -411,6 +411,15 @@ public class PrenotazioniService {
                 throw new RuntimeException("Prenotazione scaduta");
             }
         }
+        LocalDateTime oraAttuale = LocalDateTime.now(zone);
+        LocalDate dataPrenotazione = prenotazione.getData() != null
+                ? new java.sql.Date(prenotazione.getData().getTime()).toLocalDate()
+                : LocalDate.now(zone);
+        LocalTime oraInizio = LocalTime.of(0, 0);
+        if (prenotazione.getOraInizio() != null) {
+            oraInizio = prenotazione.getOraInizio();
+        }
+        LocalDateTime inizioPrenotazione = LocalDateTime.of(dataPrenotazione, oraInizio);
         // Controllo TIME_PREFETCH: limite massimo di minuti prima in cui l'utente può accedere
         Configurazione timePrefetchConfig = configurazioneMapper.selectByPrimaryKey("TIME_PREFETCH");
         if (timePrefetchConfig != null && timePrefetchConfig.getValore() != null && !timePrefetchConfig.getValore().isBlank()) {
@@ -420,21 +429,19 @@ public class PrenotazioniService {
             } catch (NumberFormatException e) {
                 minutiPrefetch = 0;
             }
-            LocalDateTime oraAttuale = LocalDateTime.now(zone);
-            LocalDate dataPrenotazione = prenotazione.getData() != null
-                    ? new java.sql.Date(prenotazione.getData().getTime()).toLocalDate()
-                    : LocalDate.now(zone);
-            LocalTime oraInizio = LocalTime.of(0, 0);
-            if (prenotazione.getOraInizio() != null) {
-                oraInizio = prenotazione.getOraInizio();
-            }
-            LocalDateTime inizioPrenotazione = LocalDateTime.of(dataPrenotazione, oraInizio);
             LocalDateTime primoAccessoConsentito = inizioPrenotazione.minusMinutes(minutiPrefetch);
             if (oraAttuale.isBefore(primoAccessoConsentito)) {
                 String valorePrefetch = timePrefetchConfig.getValore().trim();
                 throw new RuntimeException("Troppo presto, torna entro " + valorePrefetch + " minuti (accesso consentito a partire dalle "
                         + primoAccessoConsentito.toLocalTime().toString() + ")");
             }
+        }
+        // Dopo ora di fine (inizio + durata) non è più possibile accedere
+        Integer durataMinuti = prenotazione.getDurataMinuti();
+        LocalDateTime finePrenotazione = inizioPrenotazione.plusMinutes(durataMinuti);
+        if (!oraAttuale.isBefore(finePrenotazione)) {
+            throw new RuntimeException("Orario della prenotazione scaduto: il tempo prenotato è terminato (fino alle "
+                    + finePrenotazione.toLocalTime() + ")");
         }
         try {
             apriPorta();
@@ -454,12 +461,6 @@ public class PrenotazioniService {
         accesso.setDataOraAccesso(new java.util.Date());
         accesso.setEsito(portaAperta ? "ok" : "ko");
         accessoMapper.insertSelective(accesso);
-        if (portaAperta && prenotazioneId != null) {
-            Prenotazione prenotazione = new Prenotazione();
-            prenotazione.setId(prenotazioneId);
-            prenotazione.setUsata(true);
-            prenotazioneMapper.updateByPrimaryKeySelective(prenotazione);
-        }
     }
 
     private void apriPorta() {
