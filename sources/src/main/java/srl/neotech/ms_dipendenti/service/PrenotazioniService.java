@@ -16,6 +16,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -23,6 +24,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import jakarta.mail.internet.MimeMessage;
 
@@ -78,7 +82,10 @@ public class PrenotazioniService {
     @Autowired
     private RestTemplate restTemplate;
 
+    private static final String SHELLY_DEVICE_STATUS_URL = "https://shelly-250-eu.shelly.cloud/device/status";
     private static final String SHELLY_RELAY_CONTROL_URL = "https://shelly-250-eu.shelly.cloud/device/relay/control";
+
+    private static final JsonMapper SHELLY_JSON = JsonMapper.builder().build();
 
     /**
      * Ogni giorno invia un promemoria HTML
@@ -435,7 +442,8 @@ public class PrenotazioniService {
             return prenotazione;
         } catch (Exception e) {
             registraAccesso(utenteId, prenotazione.getId(), false);
-            throw e;
+
+            throw new RuntimeException("Impossibile aprire la porta: dispositivo Shelly non pronto");
         }
     }
 
@@ -446,17 +454,78 @@ public class PrenotazioniService {
         accesso.setDataOraAccesso(new java.util.Date());
         accesso.setEsito(portaAperta ? "ok" : "ko");
         accessoMapper.insertSelective(accesso);
+        if (portaAperta && prenotazioneId != null) {
+            Prenotazione prenotazione = new Prenotazione();
+            prenotazione.setId(prenotazioneId);
+            prenotazione.setUsata(true);
+            prenotazioneMapper.updateByPrimaryKeySelective(prenotazione);
+        }
     }
 
     private void apriPorta() {
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
+
+        MultiValueMap<String, String> statusParams = new LinkedMultiValueMap<>();
+        statusParams.add("id", shellyId);
+        statusParams.add("auth_key", shellyKey);
+        HttpEntity<MultiValueMap<String, String>> statusRequest = new HttpEntity<>(statusParams, headers);
+        ResponseEntity<String> statusResponse = restTemplate.postForEntity(
+                SHELLY_DEVICE_STATUS_URL,
+                statusRequest,
+                String.class);
+
+        String statusBody = statusResponse.getBody();
+        if (statusBody == null || statusBody.isBlank()) {
+            throw new RuntimeException("Shelly: risposta stato vuota");
+        }
+        JsonNode root;
+        try {
+            root = SHELLY_JSON.readTree(statusBody);
+        } catch (Exception e) {
+            throw new RuntimeException("Shelly: risposta stato non valida", e);
+        }
+        if (!root.path("isok").asBoolean(false)) {
+            throw new RuntimeException("Shelly: richiesta stato fallita (isok=false)");
+        }
+        JsonNode data = root.path("data");
+        boolean online = data.path("online").asBoolean(false);
+        JsonNode deviceStatus = data.path("device_status");
+        boolean ison = relayChannelIson(deviceStatus, 0);
+
+        if (!online || !ison) {
+            throw new RuntimeException(
+                    "Impossibile aprire la porta: dispositivo Shelly non pronto (online=" + online + ", ison=" + ison + ")");
+        }
+
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("id", shellyId);
         params.add("turn", "on");
         params.add("channel", "0");
         params.add("auth_key", shellyKey);
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-        restTemplate.postForEntity(SHELLY_RELAY_CONTROL_URL, request, String.class);
+        ResponseEntity<String> response = restTemplate.postForEntity(
+                SHELLY_RELAY_CONTROL_URL,
+                request,
+                String.class);
+        log.debug("Shelly relay/control: {}", response.getBody());
+    }
+
+    /**
+     * Stato accensione del canale relay: Gen1 {@code relays[i].ison}, Gen2 {@code switch:i.output}.
+     */
+    private static boolean relayChannelIson(JsonNode deviceStatus, int channel) {
+        if (deviceStatus == null || deviceStatus.isMissingNode()) {
+            return false;
+        }
+        JsonNode relays = deviceStatus.path("relays");
+        if (relays.isArray() && relays.size() > channel) {
+            return relays.get(channel).path("ison").asBoolean(false);
+        }
+        JsonNode sw = deviceStatus.path("switch:" + channel);
+        if (!sw.isMissingNode()) {
+            return sw.path("output").asBoolean(false);
+        }
+        return false;
     }
 }
