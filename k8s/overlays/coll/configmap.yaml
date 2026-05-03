@@ -12,9 +12,9 @@ data:
     spring.security.user.name=actuator
     spring.security.user.password=actuator
     spring.datasource.platform=postgres
-    spring.datasource.url=jdbc:postgresql://10.43.191.74:5432/gym?sslmode=disable&currentSchema=main_prod 
-    spring.datasource.username=user_prod
-    spring.datasource.password=GYMNeotech02!02!
+    spring.datasource.url=jdbc:postgresql://10.43.191.74:5432/gym?currentSchema=main_coll
+    spring.datasource.username=user_coll
+    spring.datasource.password=GymNeotech01!
     spring.datasource.hikari.connectionTimeout=20000
     spring.datasource.hikari.maximumPoolSize=5
     app.security.enabled=false
