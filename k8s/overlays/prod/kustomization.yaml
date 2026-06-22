@@ -8,4 +8,4 @@ resources:
 
 patches:
   - path: replicas-patch.yaml
-
+  - path: configmap.yaml
