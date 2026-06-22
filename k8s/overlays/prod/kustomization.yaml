@@ -5,8 +5,6 @@ namespace: ns-gym-investire-prod
 
 resources:
   - ../../base
-  - configmap.yaml
-
 
 patches:
   - path: replicas-patch.yaml
