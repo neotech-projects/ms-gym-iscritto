@@ -107,7 +107,19 @@ public class UtentiService {
         if (!password.equals(passwordDb) || !email.equals(utente.getEmail())) {
             throw new RuntimeException("CREDENZIALI_NON_VALIDE");
         }
+        if (!isTipoUtenteAutorizzatoAlLogin(utente.getTipoUtente())) {
+            throw new RuntimeException("TIPO_UTENTE_NON_AUTORIZZATO");
+        }
         return new LoginResponse(utente.getId(), utente.getNome(), utente.getCognome(), utente.getEmail(), utente.getToken());
+    }
+
+    private boolean isTipoUtenteAutorizzatoAlLogin(String tipoUtente) {
+        if (tipoUtente == null || tipoUtente.isBlank()) {
+            return false;
+        }
+        String normalized = tipoUtente.trim();
+        return normalized.equalsIgnoreCase("iscritto")
+                || normalized.equalsIgnoreCase("personal trainer");
     }
 
     public void cambiaPassword(Integer utenteId, String vecchiaPassword, String nuovaPassword) {

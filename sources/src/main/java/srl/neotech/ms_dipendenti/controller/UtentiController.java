@@ -68,7 +68,8 @@ public class UtentiController {
             if ("CREDENZIALI_NON_VALIDE".equals(e.getMessage())) {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
-            if ("PASSWORD_NON_IMPOSTATA".equals(e.getMessage())) {
+            if ("PASSWORD_NON_IMPOSTATA".equals(e.getMessage())
+                    || "TIPO_UTENTE_NON_AUTORIZZATO".equals(e.getMessage())) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
             }
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
