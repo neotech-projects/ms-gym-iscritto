@@ -10,12 +10,12 @@
 
 	<groupId>it.investiresgr.gym</groupId>
 	<artifactId>ms_dipendenti</artifactId>
-	<version>0.0.5</version>
+	<version>1.2.5</version>
 	<name>ms_dipendenti</name>
 	<description>Microservizio Dipendenti</description>
 	
 	<properties>
-		<java.version>25</java.version>
+		<java.version>21</java.version>
 	</properties>
 	<dependencies>
 	
@@ -64,9 +64,24 @@
 			<version>4.0.1</version>
 			<scope>compile</scope>
 		</dependency>
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-mail</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>
+		<resources>
+        <resource>
+                <directory>src/main/resources</directory>
+            </resource>
+            <resource>
+                <directory>src/main/java</directory>
+                <includes>
+                    <include>**/*.xml</include>
+                </includes>
+            </resource>
+        </resources>
 		<plugins>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>

@@ -6,16 +6,24 @@ data:
   application.properties: |
     server.port=8080
     banner.location=classpath:banner.txt
-    logging.level.root=info
+    logging.level.root=debug
     management.endpoints.web.exposure.include=health
     management.endpoint.health.show-details=always
     spring.security.user.name=actuator
     spring.security.user.password=actuator
     spring.datasource.platform=postgres
-    spring.datasource.url=jdbc:postgresql://16.16.192.79:5432/gym_investire 
-    spring.datasource.username=dba_user
-    spring.datasource.password=Neotech01!
+    spring.datasource.url=jdbc:postgresql://10.43.191.74:5432/gym?currentSchema=main_coll
+    spring.datasource.username=user_coll
+    spring.datasource.password=GymNeotech01!
     spring.datasource.hikari.connectionTimeout=20000
     spring.datasource.hikari.maximumPoolSize=5
     app.security.enabled=false
     app.jwt.secret=my-secret-key
+    shelly.id=90150680da54
+    shelly.key=M2VhYmQzdWlk7BADBCDCC9BADE6E2BC0AA081E7FE7E9DB253A2CDF99F7CCB95974FD15F45A4DFB7C2C8A6DD6C381
+    spring.task.scheduling.time-zone=Europe/Rome
+    spring.mail.host=smtps.aruba.it
+    spring.mail.port=587
+    spring.mail.username=gyminvestire@neotech.srl
+    spring.mail.password=Neotech01!01
+    spring.mail.from=gyminvestire@neotech.srl

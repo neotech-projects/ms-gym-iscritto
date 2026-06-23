@@ -125,7 +125,7 @@
       distinct
     </if>
     <include refid="Base_Column_List" />
-    from "public"."T_PRENOTAZIONI"
+    from "t_prenotazioni"
     <if test="_parameter != null">
       <include refid="Example_Where_Clause" />
     </if>
@@ -145,7 +145,7 @@
     -->
     select 
     <include refid="Base_Column_List" />
-    from "public"."T_PRENOTAZIONI"
+    from "t_prenotazioni"
     where "id" = #{id,jdbcType=INTEGER}
   </select>
   <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
@@ -158,7 +158,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    delete from "public"."T_PRENOTAZIONI"
+    delete from "t_prenotazioni"
     where "id" = #{id,jdbcType=INTEGER}
   </delete>
   <delete id="deleteByExample" parameterType="srl.neotech.ms_dipendenti.dto.PrenotazioneExample">
@@ -171,7 +171,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    delete from "public"."T_PRENOTAZIONI"
+    delete from "t_prenotazioni"
     <if test="_parameter != null">
       <include refid="Example_Where_Clause" />
     </if>
@@ -186,7 +186,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    insert into "public"."T_PRENOTAZIONI" ("id", "utente_id", "data", 
+    insert into "t_prenotazioni" ("id", "utente_id", "data", 
       "ora_inizio", "durata_minuti", "stato", 
       "usata", "creata", "annullata"
       )
@@ -205,7 +205,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    insert into "public"."T_PRENOTAZIONI"
+    insert into "t_prenotazioni"
     <trim prefix="(" suffix=")" suffixOverrides=",">
       <if test="id != null">
         "id",
@@ -275,7 +275,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    select count(*) from "public"."T_PRENOTAZIONI"
+    select count(*) from "t_prenotazioni"
     <if test="_parameter != null">
       <include refid="Example_Where_Clause" />
     </if>
@@ -290,7 +290,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    update "public"."T_PRENOTAZIONI"
+    update "t_prenotazioni"
     <set>
       <if test="row.id != null">
         "id" = #{row.id,jdbcType=INTEGER},
@@ -334,7 +334,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    update "public"."T_PRENOTAZIONI"
+    update "t_prenotazioni"
     set "id" = #{row.id,jdbcType=INTEGER},
       "utente_id" = #{row.utenteId,jdbcType=INTEGER},
       "data" = #{row.data,jdbcType=DATE},
@@ -358,7 +358,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    update "public"."T_PRENOTAZIONI"
+    update "t_prenotazioni"
     <set>
       <if test="utenteId != null">
         "utente_id" = #{utenteId,jdbcType=INTEGER},
@@ -397,7 +397,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    update "public"."T_PRENOTAZIONI"
+    update "t_prenotazioni"
     set "utente_id" = #{utenteId,jdbcType=INTEGER},
       "data" = #{data,jdbcType=DATE},
       "ora_inizio" = #{oraInizio,jdbcType=TIME},

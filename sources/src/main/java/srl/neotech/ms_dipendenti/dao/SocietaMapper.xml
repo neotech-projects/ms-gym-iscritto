@@ -118,7 +118,7 @@
       distinct
     </if>
     <include refid="Base_Column_List" />
-    from "public"."T_SOCIETA"
+    from "t_societa"
     <if test="_parameter != null">
       <include refid="Example_Where_Clause" />
     </if>
@@ -138,7 +138,7 @@
     -->
     select 
     <include refid="Base_Column_List" />
-    from "public"."T_SOCIETA"
+    from "t_societa"
     where "id" = #{id,jdbcType=INTEGER}
   </select>
   <delete id="deleteByPrimaryKey" parameterType="java.lang.Integer">
@@ -151,7 +151,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    delete from "public"."T_SOCIETA"
+    delete from "t_societa"
     where "id" = #{id,jdbcType=INTEGER}
   </delete>
   <delete id="deleteByExample" parameterType="srl.neotech.ms_dipendenti.dto.SocietaExample">
@@ -164,7 +164,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    delete from "public"."T_SOCIETA"
+    delete from "t_societa"
     <if test="_parameter != null">
       <include refid="Example_Where_Clause" />
     </if>
@@ -179,7 +179,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    insert into "public"."T_SOCIETA" ("id", "nome", "creata"
+    insert into "t_societa" ("id", "nome", "creata"
       )
     values (#{id,jdbcType=INTEGER}, #{nome,jdbcType=VARCHAR}, #{creata,jdbcType=TIMESTAMP}
       )
@@ -194,7 +194,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    insert into "public"."T_SOCIETA"
+    insert into "t_societa"
     <trim prefix="(" suffix=")" suffixOverrides=",">
       <if test="id != null">
         "id",
@@ -228,7 +228,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    select count(*) from "public"."T_SOCIETA"
+    select count(*) from "t_societa"
     <if test="_parameter != null">
       <include refid="Example_Where_Clause" />
     </if>
@@ -243,7 +243,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    update "public"."T_SOCIETA"
+    update "t_societa"
     <set>
       <if test="row.id != null">
         "id" = #{row.id,jdbcType=INTEGER},
@@ -269,7 +269,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    update "public"."T_SOCIETA"
+    update "t_societa"
     set "id" = #{row.id,jdbcType=INTEGER},
       "nome" = #{row.nome,jdbcType=VARCHAR},
       "creata" = #{row.creata,jdbcType=TIMESTAMP}
@@ -287,7 +287,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    update "public"."T_SOCIETA"
+    update "t_societa"
     <set>
       <if test="nome != null">
         "nome" = #{nome,jdbcType=VARCHAR},
@@ -308,7 +308,7 @@
       This element was generated on Tue Feb 17 08:54:50 CET 2026.
 >>>>>>> Stashed changes
     -->
-    update "public"."T_SOCIETA"
+    update "t_societa"
     set "nome" = #{nome,jdbcType=VARCHAR},
       "creata" = #{creata,jdbcType=TIMESTAMP}
     where "id" = #{id,jdbcType=INTEGER}
