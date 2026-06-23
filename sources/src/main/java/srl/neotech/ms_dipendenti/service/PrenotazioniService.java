@@ -6,8 +6,10 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,6 +26,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
+
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
 
 import jakarta.mail.internet.MimeMessage;
 
@@ -84,6 +89,8 @@ public class PrenotazioniService {
 
     @Value("${shelly.relay.control.url}")
     private  String SHELLY_RELAY_CONTROL_URL;
+
+    private static final JsonMapper SHELLY_JSON = JsonMapper.builder().build();
 
     /**
      * Ogni giorno invia un promemoria HTML
@@ -482,60 +489,59 @@ public class PrenotazioniService {
         boolean online = status[0];
         boolean relay = status[1];
 
-        if (!online || !relay) {
+        if (!online || relay) {
             throw new RuntimeException(
                     "Impossibile aprire la porta: dispositivo Shelly non pronto (online=" + online + ", relay=" + relay + ")");
         }
 
-        MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
-        params.add("id", shellyId);
-        params.add("on", "$true");
-        params.add("channel", "0");
-        params.add("toggle_after", "2");
-        params.add("auth_key", shellyKey);
-        HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
+        HttpHeaders relayHeaders = new HttpHeaders();
+        relayHeaders.setContentType(MediaType.APPLICATION_JSON);
+
+        Map<String, Object> relayBody = new LinkedHashMap<>();
+        relayBody.put("id", shellyId);
+        relayBody.put("channel", 0);
+        relayBody.put("on", true);
+        relayBody.put("toggle_after", 2);
+
+        String relayUrl = SHELLY_RELAY_CONTROL_URL + "?auth_key=" + shellyKey;
+        HttpEntity<Map<String, Object>> relayRequest = new HttpEntity<>(relayBody, relayHeaders);
         ResponseEntity<String> response = restTemplate.postForEntity(
-                SHELLY_RELAY_CONTROL_URL,
-                request,
+                relayUrl,
+                relayRequest,
                 String.class);
         log.debug("Shelly relay/control: {}", response.getBody());
     }
 
-    /**
-     * Risposta testuale attesa:
-     * <pre>
-     * Online Relay
-     * ------ -----
-     *   True False
-     * </pre>
-     */
     private static boolean[] parseShellyDeviceStatus(String body) {
-        String[] lines = body.trim().split("\\R");
-        int headerIdx = -1;
-        for (int i = 0; i < lines.length; i++) {
-            String lower = lines[i].toLowerCase(Locale.ROOT);
-            if (lower.contains("online") && lower.contains("relay")) {
-                headerIdx = i;
-                break;
-            }
+        JsonNode root;
+        try {
+            root = SHELLY_JSON.readTree(body);
+        } catch (Exception e) {
+            throw new RuntimeException("Shelly: risposta stato non valida", e);
         }
-        if (headerIdx < 0) {
-            throw new RuntimeException("Shelly: formato risposta stato non riconosciuto");
+        if (!root.path("isok").asBoolean(false)) {
+            throw new RuntimeException("Shelly: richiesta stato fallita (isok=false)");
         }
-        for (int i = headerIdx + 1; i < lines.length; i++) {
-            String line = lines[i].trim();
-            if (line.isEmpty() || line.matches("-+\\s*-+")) {
-                continue;
-            }
-            String[] parts = line.split("\\s+");
-            if (parts.length >= 2) {
-                return new boolean[] {
-                        Boolean.parseBoolean(parts[0]),
-                        Boolean.parseBoolean(parts[1])
-                };
-            }
+        JsonNode data = root.path("data");
+        boolean online = data.path("online").asBoolean(false);
+        boolean relay = relayChannelOutput(data.path("device_status"), 0);
+        return new boolean[] { online, relay };
+    }
+
+    /** Gen1 {@code relays[i].ison}, Gen2 {@code switch:i.output}. */
+    private static boolean relayChannelOutput(JsonNode deviceStatus, int channel) {
+        if (deviceStatus == null || deviceStatus.isMissingNode()) {
+            return false;
         }
-        throw new RuntimeException("Shelly: valori online/relay mancanti");
+        JsonNode relays = deviceStatus.path("relays");
+        if (relays.isArray() && relays.size() > channel) {
+            return relays.get(channel).path("ison").asBoolean(false);
+        }
+        JsonNode sw = deviceStatus.path("switch:" + channel);
+        if (!sw.isMissingNode()) {
+            return sw.path("output").asBoolean(false);
+        }
+        return false;
     }
 
 }
