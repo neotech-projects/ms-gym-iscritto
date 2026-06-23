@@ -1,4 +1,4 @@
-﻿package srl.neotech.ms_dipendenti.dao;
+package srl.neotech.ms_dipendenti.dao;
 
 import java.util.List;
 import org.apache.ibatis.annotations.Param;
