@@ -25,9 +25,6 @@ import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.RestTemplate;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.json.JsonMapper;
-
 import jakarta.mail.internet.MimeMessage;
 
 import srl.neotech.ms_dipendenti.dao.AccessoMapper;
@@ -87,8 +84,6 @@ public class PrenotazioniService {
 
     @Value("${shelly.relay.control.url}")
     private  String SHELLY_RELAY_CONTROL_URL;
-
-    private static final JsonMapper SHELLY_JSON = JsonMapper.builder().build();
 
     /**
      * Ogni giorno invia un promemoria HTML
@@ -483,23 +478,13 @@ public class PrenotazioniService {
         if (statusBody == null || statusBody.isBlank()) {
             throw new RuntimeException("Shelly: risposta stato vuota");
         }
-        JsonNode root;
-        try {
-            root = SHELLY_JSON.readTree(statusBody);
-        } catch (Exception e) {
-            throw new RuntimeException("Shelly: risposta stato non valida", e);
-        }
-        if (!root.path("isok").asBoolean(false)) {
-            throw new RuntimeException("Shelly: richiesta stato fallita (isok=false)");
-        }
-        JsonNode data = root.path("data");
-        boolean online = data.path("online").asBoolean(false);
-        JsonNode deviceStatus = data.path("device_status");
-        boolean ison = relayChannelIson(deviceStatus, 0);
+        boolean[] status = parseShellyDeviceStatus(statusBody);
+        boolean online = status[0];
+        boolean relay = status[1];
 
-        if (!online || !ison) {
+        if (!online || !relay) {
             throw new RuntimeException(
-                    "Impossibile aprire la porta: dispositivo Shelly non pronto (online=" + online + ", ison=" + ison + ")");
+                    "Impossibile aprire la porta: dispositivo Shelly non pronto (online=" + online + ", relay=" + relay + ")");
         }
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
@@ -517,20 +502,40 @@ public class PrenotazioniService {
     }
 
     /**
-     * Stato accensione del canale relay: Gen1 {@code relays[i].ison}, Gen2 {@code switch:i.output}.
+     * Risposta testuale attesa:
+     * <pre>
+     * Online Relay
+     * ------ -----
+     *   True False
+     * </pre>
      */
-    private static boolean relayChannelIson(JsonNode deviceStatus, int channel) {
-        if (deviceStatus == null || deviceStatus.isMissingNode()) {
-            return false;
+    private static boolean[] parseShellyDeviceStatus(String body) {
+        String[] lines = body.trim().split("\\R");
+        int headerIdx = -1;
+        for (int i = 0; i < lines.length; i++) {
+            String lower = lines[i].toLowerCase(Locale.ROOT);
+            if (lower.contains("online") && lower.contains("relay")) {
+                headerIdx = i;
+                break;
+            }
         }
-        JsonNode relays = deviceStatus.path("relays");
-        if (relays.isArray() && relays.size() > channel) {
-            return relays.get(channel).path("ison").asBoolean(false);
+        if (headerIdx < 0) {
+            throw new RuntimeException("Shelly: formato risposta stato non riconosciuto");
         }
-        JsonNode sw = deviceStatus.path("switch:" + channel);
-        if (!sw.isMissingNode()) {
-            return sw.path("output").asBoolean(false);
+        for (int i = headerIdx + 1; i < lines.length; i++) {
+            String line = lines[i].trim();
+            if (line.isEmpty() || line.matches("-+\\s*-+")) {
+                continue;
+            }
+            String[] parts = line.split("\\s+");
+            if (parts.length >= 2) {
+                return new boolean[] {
+                        Boolean.parseBoolean(parts[0]),
+                        Boolean.parseBoolean(parts[1])
+                };
+            }
         }
-        return false;
+        throw new RuntimeException("Shelly: valori online/relay mancanti");
     }
+
 }
