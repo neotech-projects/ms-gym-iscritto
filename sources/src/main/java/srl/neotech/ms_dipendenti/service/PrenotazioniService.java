@@ -504,8 +504,9 @@ public class PrenotazioniService {
 
         MultiValueMap<String, String> params = new LinkedMultiValueMap<>();
         params.add("id", shellyId);
-        params.add("turn", "on");
+        params.add("on", "$true");
         params.add("channel", "0");
+        params.add("toggle_after", "2");
         params.add("auth_key", shellyKey);
         HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
         ResponseEntity<String> response = restTemplate.postForEntity(
