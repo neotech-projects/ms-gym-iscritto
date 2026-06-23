@@ -24,7 +24,7 @@ data:
     shelly.id=901506811b54
     shelly.key=NDQ1YjVhdWlkC23C2CD387A7754006B5B8CC0D6575211E8D2642B08DA2B8AB5610C3FD63449FFD25B12C2108BE1F
     spring.task.scheduling.time-zone=Europe/Rome
-    spring.mail.host=smtps.aruba.it
+    spring.mail.host=smtps.neotech.srl
     spring.mail.port=587
     spring.mail.username=gyminvestire@neotech.srl
     spring.mail.password=Neotech01!01
