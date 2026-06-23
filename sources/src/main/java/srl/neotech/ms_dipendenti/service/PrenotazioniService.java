@@ -82,8 +82,11 @@ public class PrenotazioniService {
     @Autowired
     private RestTemplate restTemplate;
 
-    private static final String SHELLY_DEVICE_STATUS_URL = "https://shelly-250-eu.shelly.cloud/device/status";
-    private static final String SHELLY_RELAY_CONTROL_URL = "https://shelly-250-eu.shelly.cloud/device/relay/control";
+    @Value("${shelly.device.status.url}")
+    private  String SHELLY_DEVICE_STATUS_URL;
+
+    @Value("${shelly.relay.control.url}")
+    private  String SHELLY_RELAY_CONTROL_URL;
 
     private static final JsonMapper SHELLY_JSON = JsonMapper.builder().build();
 

@@ -19,8 +19,10 @@ data:
     spring.datasource.hikari.maximumPoolSize=5
     app.security.enabled=false
     app.jwt.secret=my-secret-key
+    shelly.device.status.url=https://shelly-267-eu.shelly.cloud/device/status
+    shelly.relay.control.url=https://shelly-267-eu.shelly.cloud/device/relay/control
     shelly.id=901506811b54
-    shelly.key=M2VhYmQzdWlk7BADBCDCC9BADE6E2BC0AA081E7FE7E9DB253A2CDF99F7CCB95974FD15F45A4DFB7C2C8A6DD6C381
+    shelly.key=NDQ1YjVhdWlkC23C2CD387A7754006B5B8CC0D6575211E8D2642B08DA2B8AB5610C3FD63449FFD25B12C2108BE1F
     spring.task.scheduling.time-zone=Europe/Rome
     spring.mail.host=smtps.aruba.it
     spring.mail.port=587
