@@ -49,16 +49,7 @@ public class UtentiController {
     public ResponseEntity<LoginResponse> login(@RequestBody LoginRequest loginRequest) {
         try {
             LoginResponse response = utentiService.login(loginRequest.getEmail(), loginRequest.getPassword());
-            String sameSite = sessionCookieSameSite != null ? sessionCookieSameSite.trim() : "Lax";
-            ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from(SESSION_COOKIE_NAME, response.getToken())
-                    .httpOnly(true)
-                    .path("/")
-                    .maxAge(Duration.ofDays(sessionCookieMaxAgeDays))
-                    .secure(sessionCookieSecure);
-            if (!sameSite.isEmpty()) {
-                cookieBuilder = cookieBuilder.sameSite(sameSite);
-            }
-            ResponseCookie cookie = cookieBuilder.build();
+            ResponseCookie cookie = buildSessionCookie(response.getToken(), Duration.ofDays(sessionCookieMaxAgeDays));
             return ResponseEntity.ok()
                     .header(HttpHeaders.SET_COOKIE, cookie.toString())
                     .body(response);
@@ -74,6 +65,27 @@ public class UtentiController {
             }
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Void> logout() {
+        ResponseCookie cookie = buildSessionCookie("", Duration.ZERO);
+        return ResponseEntity.noContent()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .build();
+    }
+
+    private ResponseCookie buildSessionCookie(String value, Duration maxAge) {
+        String sameSite = sessionCookieSameSite != null ? sessionCookieSameSite.trim() : "Lax";
+        ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from(SESSION_COOKIE_NAME, value)
+                .httpOnly(true)
+                .path("/")
+                .maxAge(maxAge)
+                .secure(sessionCookieSecure);
+        if (!sameSite.isEmpty()) {
+            cookieBuilder = cookieBuilder.sameSite(sameSite);
+        }
+        return cookieBuilder.build();
     }
 
     @GetMapping("/profilo")
